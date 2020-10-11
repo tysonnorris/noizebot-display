@@ -132,6 +132,31 @@ class States(Control):
         self.quit = False
         self.previous = None
 
+class Spotify(States):
+    def __init__(self):
+        States.__init__(self)
+        self.next = 'menu'
+        self.from_bottom = 200
+        self.spacer = 75
+        self.selected_color = (0,0,0)
+    def cleanup(self):
+        print('cleaning up Spotify state stuff')
+    def startup(self):
+        print('starting Spotify state stuff')
+
+    def get_event(self, event):
+        if event.type == pg.MOUSEBUTTONDOWN or event.type == pg.KEYDOWN:
+            self.done = True
+        if event.type == pg.QUIT:
+            self.quit = True
+    def update(self, screen, dt):
+        self.draw(screen)
+    def draw(self, screen):
+        screen.fill((0,0,255))
+        font_selected = pg.font.SysFont("arial", 70)
+        s_rend = font_selected.render("Playing Spotify", 1, self.selected_color)
+        s_rect = s_rend.get_rect()
+        screen.blit(s_rend, s_rect)
 
 class Menu(States, MenuManager):
     def __init__(self):
@@ -203,11 +228,12 @@ class Game(States):
 
 app = Control()
 state_dict = {
+    'spotify': Spotify(),
     'menu': Menu(),
     'game': Game(),
     'options':Options()
 }
-app.setup_states(state_dict, 'menu')
+app.setup_states(state_dict, 'spotify')
 app.main_game_loop()
 pg.quit()
 sys.exit()
