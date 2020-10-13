@@ -1,6 +1,6 @@
 import pygame as pg
 import sys
-
+from threading import Timer
 pg.init()
 
 class Control:
@@ -125,16 +125,31 @@ class MenuManager:
                 self.selected_index = 0
 
 class States(Control):
-    def __init__(self):
+    def __init__(self, closeOnTimer=True):
         Control.__init__(self)
         self.done = False
         self.next = None
         self.quit = False
         self.previous = None
+        self.timer = None
+        self.closeOnTimer = closeOnTimer
+    def startup(self):
+        if self.closeOnTimer:
+            self.reset()
+
+    def spotify(self):
+        self.done = True
+
+    def reset(self):
+        #timer to jump back to spotify
+        if self.timer != None:
+            self.timer.cancel()
+        self.timer = Timer(5, self.spotify)
+        self.timer.start()
 
 class Spotify(States):
     def __init__(self):
-        States.__init__(self)
+        States.__init__(self, False)
         self.next = 'menu'
         self.from_bottom = 200
         self.spacer = 75
@@ -142,12 +157,18 @@ class Spotify(States):
     def cleanup(self):
         print('cleaning up Spotify state stuff')
     def startup(self):
+        super().startup()
         print('starting Spotify state stuff')
 
     def get_event(self, event):
-        if event.type == pg.MOUSEBUTTONDOWN or event.type == pg.KEYDOWN:
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_DOWN or event.key == pg.K_UP:
+                self.next = "volume"
+                self.done = True
+        elif event.type == pg.MOUSEBUTTONDOWN:
+            self.next = "options"
             self.done = True
-        if event.type == pg.QUIT:
+        elif event.type == pg.QUIT:
             self.quit = True
     def update(self, screen, dt):
         self.draw(screen)
@@ -158,11 +179,46 @@ class Spotify(States):
         s_rect = s_rend.get_rect()
         screen.blit(s_rend, s_rect)
 
+class Volume(States):
+    def __init__(self):
+        States.__init__(self)
+        self.next = 'spotify'
+        self.from_bottom = 200
+        self.spacer = 75
+        self.selected_color = (0,0,0)
+        self.volume = 50
+    def cleanup(self):
+        print('cleaning up Volume state stuff')
+    def startup(self):
+        super().startup()
+        print('starting Volume state stuff')
+
+
+    def get_event(self, event):
+        if event.type == pg.KEYDOWN:
+            self.reset()
+            if event.key == pg.K_DOWN:
+                if self.volume >= 5:
+                    self.volume -= 5
+            if event.key == pg.K_UP:
+                if self.volume <= 95:
+                    self.volume += 5
+
+    def update(self, screen, dt):
+        self.draw(screen)
+    def draw(self, screen):
+        screen.fill((0,0,255))
+        font_selected = pg.font.SysFont("arial", 70)
+        s_rend = font_selected.render("Volume is "+str(self.volume), 1, self.selected_color)
+        s_rect = s_rend.get_rect()
+        screen.blit(s_rend, s_rect)
+
+
 class Menu(States, MenuManager):
     def __init__(self):
         States.__init__(self)
         MenuManager.__init__(self)
-        self.next = 'game'
+        self.next = 'spotify'
         self.options = ['Play', 'Options', 'Quit']
         self.next_list = ['game', 'options']
         self.pre_render_options()
@@ -171,8 +227,10 @@ class Menu(States, MenuManager):
     def cleanup(self):
         print('cleaning up Main Menu state stuff')
     def startup(self):
+        super().startup()
         print('starting Main Menu state stuff')
     def get_event(self, event):
+        self.reset()
         if event.type == pg.QUIT:
             self.quit = True
         self.get_event_menu(event)
@@ -199,7 +257,9 @@ class Options(States, MenuManager):
         print('cleaning up Options state stuff')
     def startup(self):
         print('starting Options state stuff')
+        super().startup()
     def get_event(self, event):
+        self.reset()
         if event.type == pg.QUIT:
             self.quit = True
         self.get_event_menu(event)
@@ -218,7 +278,9 @@ class Game(States):
         print('cleaning up Game state stuff')
     def startup(self):
         print('starting Game state stuff')
+        super().startup()
     def get_event(self, event):
+        self.reset()
         if event.type == pg.MOUSEBUTTONDOWN or event.type == pg.KEYDOWN:
             self.done = True
     def update(self, screen, dt):
@@ -229,6 +291,7 @@ class Game(States):
 app = Control()
 state_dict = {
     'spotify': Spotify(),
+    'volume': Volume(),
     'menu': Menu(),
     'game': Game(),
     'options':Options()
