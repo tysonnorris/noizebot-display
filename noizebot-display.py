@@ -1,5 +1,6 @@
 import pygame as pg
 import sys
+from spotify import Spotify
 from threading import Timer
 pg.init()
 
@@ -147,35 +148,42 @@ class States(Control):
         self.timer = Timer(5, self.spotify)
         self.timer.start()
 
-class Spotify(States):
+class SpotifyControls(States):
     def __init__(self):
         States.__init__(self, False)
         self.next = 'menu'
         self.from_bottom = 200
         self.spacer = 75
         self.selected_color = (0,0,0)
+        self.playing = False
+        self.spotify = Spotify()
     def cleanup(self):
-        print('cleaning up Spotify state stuff')
+        print('cleaning up SpotifyControls state stuff')
     def startup(self):
         super().startup()
-        print('starting Spotify state stuff')
+        print('starting SpotifyControls state stuff')
 
     def get_event(self, event):
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_DOWN or event.key == pg.K_UP:
                 self.next = "volume"
                 self.done = True
+            elif event.key == pg.K_SPACE:
+                self.togglePlay()
         elif event.type == pg.MOUSEBUTTONDOWN:
             self.next = "options"
             self.done = True
         elif event.type == pg.QUIT:
             self.quit = True
+    def togglePlay(self):
+        self.spotify.togglePlay()
     def update(self, screen, dt):
         self.draw(screen)
     def draw(self, screen):
         screen.fill((0,0,255))
         font_selected = pg.font.SysFont("arial", 70)
-        s_rend = font_selected.render("Playing Spotify", 1, self.selected_color)
+        msg = "Playing" if self.spotify.playing else "Paused"
+        s_rend = font_selected.render(msg, 1, self.selected_color)
         s_rect = s_rend.get_rect()
         screen.blit(s_rend, s_rect)
 
@@ -290,7 +298,7 @@ class Game(States):
 
 app = Control()
 state_dict = {
-    'spotify': Spotify(),
+    'spotify': SpotifyControls(),
     'volume': Volume(),
     'menu': Menu(),
     'game': Game(),
