@@ -58,9 +58,9 @@ class MenuManager:
             else:
                 screen.blit(opt[0],opt[1])
 
-    def update_menu(self):
-        self.mouse_hover_sound()
-        self.change_selected_option()
+    # def update_menu(self):
+        # self.mouse_hover_sound()
+        # self.change_selected_option()
 
     def get_event_menu(self, event):
         if event.type == pg.KEYDOWN:
@@ -138,25 +138,25 @@ class States(Control):
         if self.closeOnTimer:
             self.reset()
 
-    def spotify(self):
+    def spotifycontrols(self):
         self.done = True
 
     def reset(self):
         #timer to jump back to spotify
         if self.timer != None:
             self.timer.cancel()
-        self.timer = Timer(5, self.spotify)
+        self.timer = Timer(5, self.spotifycontrols)
         self.timer.start()
 
 class SpotifyControls(States):
-    def __init__(self):
+    def __init__(self, s):
         States.__init__(self, False)
         self.next = 'menu'
         self.from_bottom = 200
         self.spacer = 75
         self.selected_color = (0,0,0)
         self.playing = False
-        self.spotify = Spotify()
+        self.spotify = s
     def cleanup(self):
         print('cleaning up SpotifyControls state stuff')
     def startup(self):
@@ -190,7 +190,7 @@ class SpotifyControls(States):
 class Volume(States):
     def __init__(self):
         States.__init__(self)
-        self.next = 'spotify'
+        self.next = 'spotifycontrols'
         self.from_bottom = 200
         self.spacer = 75
         self.selected_color = (0,0,0)
@@ -226,7 +226,7 @@ class Menu(States, MenuManager):
     def __init__(self):
         States.__init__(self)
         MenuManager.__init__(self)
-        self.next = 'spotify'
+        self.next = 'spotifycontrols'
         self.options = ['Play', 'Options', 'Quit']
         self.next_list = ['game', 'options']
         self.pre_render_options()
@@ -243,7 +243,7 @@ class Menu(States, MenuManager):
             self.quit = True
         self.get_event_menu(event)
     def update(self, screen, dt):
-        self.update_menu()
+        # self.update_menu()
         self.draw(screen)
     def draw(self, screen):
         screen.fill((255,0,0))
@@ -254,8 +254,8 @@ class Options(States, MenuManager):
         States.__init__(self)
         MenuManager.__init__(self)
         self.next = 'menu'
-        self.options = ['Music', 'Sound', 'Graphics', 'Controls', 'Main Menu']
-        self.next_list = ['options', 'options', 'options', 'options', 'menu']
+        self.options = ['Playlist', 'Sound/EQ', 'Main Menu']
+        self.next_list = ['playlists', 'options', 'menu']
         self.from_bottom = 200
         self.spacer = 75
         self.deselected_color = (150,150,150)
@@ -272,11 +272,54 @@ class Options(States, MenuManager):
             self.quit = True
         self.get_event_menu(event)
     def update(self, screen, dt):
-        self.update_menu()
+        # self.update_menu()
         self.draw(screen)
     def draw(self, screen):
         screen.fill((255,0,0))
         self.draw_menu(screen)
+
+class Playlists(States, MenuManager):
+    def __init__(self, s):
+        States.__init__(self)
+        MenuManager.__init__(self)
+        self.next = 'spotifycontrols'
+        self.spotify = s
+    def cleanup(self):
+        print('cleaning up Playlists state stuff')
+    def startup(self):
+        print('starting Playlists state stuff')
+        #self.options = ['Playlist1', 'Playlist2', 'Playlist3']
+        self.playlists = self.spotify.getPlaylists()
+        #convert to array of strings
+        self.options = []
+        for p in self.playlists:
+            self.options.append(p['name'])
+
+
+        self.next_list = ['spotifycontrols', 'spotifycontrols', 'spotifycontrols']
+        self.from_bottom = 200
+        self.spacer = 75
+        self.deselected_color = (150,150,150)
+        self.selected_color = (0,0,0)
+        self.pre_render_options()
+
+        super().startup()
+    def get_event(self, event):
+        self.reset()
+        if event.type == pg.QUIT:
+            self.quit = True
+        self.get_event_menu(event)
+    def update(self, screen, dt):
+        # self.update_menu()
+        self.draw(screen)
+    def draw(self, screen):
+        screen.fill((255,0,0))
+        self.draw_menu(screen)
+    def select_option(self, i):
+        print("selected playlist", self.options[i])
+        self.next = self.next_list[i]
+        self.done = True
+        self.selected_index = 0
 
 class Game(States):
     def __init__(self):
@@ -297,14 +340,16 @@ class Game(States):
         screen.fill((0,0,255))
 
 app = Control()
+spotify = Spotify()
 state_dict = {
-    'spotify': SpotifyControls(),
+    'spotifycontrols': SpotifyControls(spotify),
+    'playlists': Playlists(spotify),
     'volume': Volume(),
     'menu': Menu(),
     'game': Game(),
     'options':Options()
 }
-app.setup_states(state_dict, 'spotify')
+app.setup_states(state_dict, 'spotifycontrols')
 app.main_game_loop()
 pg.quit()
 sys.exit()
