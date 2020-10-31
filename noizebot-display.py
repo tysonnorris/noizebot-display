@@ -7,8 +7,8 @@ pg.init()
 class Control:
     def __init__(self):
         self.done = False
-        self.fps = 60
-        self.screen = pg.display.set_mode((600,600))
+        self.fps = 5
+        self.screen = pg.display.set_mode((320,240))
         self.screen_rect = self.screen.get_rect()
         self.clock = pg.time.Clock()
     def setup_states(self, state_dict, start_state):
@@ -50,7 +50,8 @@ class MenuManager:
     def draw_menu(self, screen):
         '''handle drawing of the menu options'''
         for i,opt in enumerate(self.rendered["des"]):
-            opt[1].center = (self.screen_rect.centerx, self.from_bottom+i*self.spacer)
+            centery = self.from_bottom+i*self.spacer
+            opt[1].center = (self.screen_rect.centerx, centery)
             if i == self.selected_index:
                 rend_img,rend_rect = self.rendered["sel"][i]
                 rend_rect.center = opt[1].center
@@ -65,6 +66,7 @@ class MenuManager:
     def get_event_menu(self, event):
         if event.type == pg.KEYDOWN:
             '''select new index'''
+            print("check for offscreen")
             if event.key in [pg.K_UP, pg.K_w]:
                 self.change_selected_option(-1)
             elif event.key in [pg.K_DOWN, pg.K_s]:
@@ -114,9 +116,9 @@ class MenuManager:
 
     def change_selected_option(self, op=0):
         '''change highlighted menu option'''
-        for i,opt in enumerate(self.rendered["des"]):
-            if opt[1].collidepoint(pg.mouse.get_pos()):
-                self.selected_index = i
+        # for i,opt in enumerate(self.rendered["des"]):
+        #     if opt[1].collidepoint(pg.mouse.get_pos()):
+        #         self.selected_index = i
         if op:
             self.selected_index += op
             max_ind = len(self.rendered['des'])-1
@@ -151,8 +153,8 @@ class States(Control):
 class SpotifyControls(States):
     def __init__(self, s):
         States.__init__(self, False)
-        self.next = 'menu'
-        self.from_bottom = 200
+        self.next = 'spotifycontrols'
+        self.from_bottom = 20
         self.spacer = 75
         self.selected_color = (0,0,0)
         self.playing = False
@@ -191,7 +193,7 @@ class Volume(States):
     def __init__(self):
         States.__init__(self)
         self.next = 'spotifycontrols'
-        self.from_bottom = 200
+        self.from_bottom = 20
         self.spacer = 75
         self.selected_color = (0,0,0)
         self.volume = 50
@@ -230,7 +232,7 @@ class Menu(States, MenuManager):
         self.options = ['Play', 'Options', 'Quit']
         self.next_list = ['game', 'options']
         self.pre_render_options()
-        self.from_bottom = 200
+        self.from_bottom = 20
         self.spacer = 75
     def cleanup(self):
         print('cleaning up Main Menu state stuff')
@@ -253,18 +255,20 @@ class Options(States, MenuManager):
     def __init__(self):
         States.__init__(self)
         MenuManager.__init__(self)
-        self.next = 'menu'
-        self.options = ['Playlist', 'Sound/EQ', 'Main Menu']
-        self.next_list = ['playlists', 'options', 'menu']
-        self.from_bottom = 200
-        self.spacer = 75
-        self.deselected_color = (150,150,150)
-        self.selected_color = (0,0,0)
-        self.pre_render_options()
+
     def cleanup(self):
         print('cleaning up Options state stuff')
     def startup(self):
         print('starting Options state stuff')
+        self.next = 'spotifycontrols'
+        self.options = ['Playlist', 'Sound/EQ', 'Display', 'System']
+        self.next_list = ['playlists', 'options', 'display', 'system']
+        self.from_bottom = 20
+        self.spacer = 75
+        self.deselected_color = (150,150,150)
+        self.selected_color = (0,0,0)
+        self.pre_render_options()
+        self.done = False
         super().startup()
     def get_event(self, event):
         self.reset()
@@ -277,6 +281,69 @@ class Options(States, MenuManager):
     def draw(self, screen):
         screen.fill((255,0,0))
         self.draw_menu(screen)
+
+class Display(States, MenuManager):
+    def __init__(self):
+        States.__init__(self)
+        MenuManager.__init__(self)
+
+    def cleanup(self):
+        print('cleaning up Display state stuff')
+    def startup(self):
+        print('starting Display state stuff')
+        self.next = 'spotifycontrols'
+        self.options = ['Show Artwork', 'Enable LEDs', 'Enable Second Display']
+        self.next_list = ['spotifycontrols', 'spotifycontrols', 'spotifycontrols']
+        self.from_bottom = 20
+        self.spacer = 75
+        self.deselected_color = (150,150,150)
+        self.selected_color = (0,0,0)
+        self.pre_render_options()
+        self.done = False
+        super().startup()
+    def get_event(self, event):
+        self.reset()
+        if event.type == pg.QUIT:
+            self.quit = True
+        self.get_event_menu(event)
+    def update(self, screen, dt):
+        # self.update_menu()
+        self.draw(screen)
+    def draw(self, screen):
+        screen.fill((255,0,0))
+        self.draw_menu(screen)
+
+class System(States, MenuManager):
+    def __init__(self):
+        States.__init__(self)
+        MenuManager.__init__(self)
+
+    def cleanup(self):
+        print('cleaning up System state stuff')
+    def startup(self):
+        print('starting System state stuff')
+        self.next = 'spotifycontrols'
+        self.options = ['Spotify User', 'Restart', 'Reset']
+        self.next_list = ['spotifycontrols', 'spotifycontrols', 'spotifycontrols']
+        self.from_bottom = 20
+        self.spacer = 75
+        self.deselected_color = (150,150,150)
+        self.selected_color = (0,0,0)
+        self.pre_render_options()
+        self.done = False
+        super().startup()
+    def get_event(self, event):
+        self.reset()
+        if event.type == pg.QUIT:
+            self.quit = True
+        self.get_event_menu(event)
+    def update(self, screen, dt):
+        # self.update_menu()
+        self.draw(screen)
+    def draw(self, screen):
+        screen.fill((255,0,0))
+        self.draw_menu(screen)
+
 
 class Playlists(States, MenuManager):
     def __init__(self, s):
@@ -295,14 +362,14 @@ class Playlists(States, MenuManager):
         for p in self.playlists:
             self.options.append(p['name'])
 
-
-        self.next_list = ['spotifycontrols', 'spotifycontrols', 'spotifycontrols']
-        self.from_bottom = 200
+        self.next_list = ['spotifycontrols'] * len(self.playlists)
+        #self.next_list = ['spotifycontrols', 'spotifycontrols', 'spotifycontrols']
+        self.from_bottom = 20
         self.spacer = 75
         self.deselected_color = (150,150,150)
         self.selected_color = (0,0,0)
         self.pre_render_options()
-
+        self.done = False
         super().startup()
     def get_event(self, event):
         self.reset()
@@ -345,6 +412,8 @@ state_dict = {
     'spotifycontrols': SpotifyControls(spotify),
     'playlists': Playlists(spotify),
     'volume': Volume(),
+    'display': Display(),
+    'system': System(),
     'menu': Menu(),
     'game': Game(),
     'options':Options()
