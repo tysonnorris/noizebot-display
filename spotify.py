@@ -3,6 +3,7 @@
 class Spotify:
     def __init__(self):
         self.playing = False
+        self.art = None
     def play(self):
         print("Spotify Start Playing...")
     def pause(self):
@@ -27,3 +28,7 @@ class Spotify:
         else:
             self.pause()
         self.playing = not self.playing
+        if self.playing:
+            self.art = "https://cdn-learn.adafruit.com/assets/assets/000/012/553/original/raspberry_pi_adapiluv320x240.jpg"
+        else:
+            self.art = None

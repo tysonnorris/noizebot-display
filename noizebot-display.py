@@ -1,7 +1,10 @@
 import pygame as pg
 import sys
+import io
 from spotify import Spotify
 from threading import Timer
+import requests
+
 pg.init()
 
 class Control:
@@ -159,12 +162,14 @@ class SpotifyControls(States):
         self.selected_color = (0,0,0)
         self.playing = False
         self.spotify = s
+        self.art = None
+        self.updateDisplay = True
     def cleanup(self):
         print('cleaning up SpotifyControls state stuff')
     def startup(self):
         super().startup()
         print('starting SpotifyControls state stuff')
-
+        self.updateDisplay = True
     def get_event(self, event):
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_DOWN or event.key == pg.K_UP:
@@ -172,6 +177,7 @@ class SpotifyControls(States):
                 self.done = True
             elif event.key == pg.K_SPACE:
                 self.togglePlay()
+                self.updateDisplay = True
         elif event.type == pg.MOUSEBUTTONDOWN:
             self.next = "options"
             self.done = True
@@ -179,15 +185,30 @@ class SpotifyControls(States):
             self.quit = True
     def togglePlay(self):
         self.spotify.togglePlay()
+        self.updateDisplay = True
     def update(self, screen, dt):
+        if spotify.art != self.art:
+            print("changing art to ", spotify.art)
+            self.art = spotify.art
+            self.updateDisplay = True
+
         self.draw(screen)
     def draw(self, screen):
-        screen.fill((0,0,255))
-        font_selected = pg.font.SysFont("arial", 70)
-        msg = "Playing" if self.spotify.playing else "Paused"
-        s_rend = font_selected.render(msg, 1, self.selected_color)
-        s_rect = s_rend.get_rect()
-        screen.blit(s_rend, s_rect)
+        if self.updateDisplay:
+            self.updateDisplay = False #stop updating
+            screen.fill((0,0,255))
+            if self.art != None:
+                image_url = self.art
+                image_req = requests.get(image_url)
+                # create a file object (stream)
+                image_file = io.BytesIO(image_req.content)
+                image = pg.image.load(image_file)
+                screen.blit(image, (0, 0))
+            font_selected = pg.font.SysFont("arial", 70)
+            msg = "Playing" if self.spotify.playing else "Paused"
+            s_rend = font_selected.render(msg, 1, self.selected_color)
+            s_rect = s_rend.get_rect()
+            screen.blit(s_rend, s_rect)
 
 class Volume(States):
     def __init__(self):
