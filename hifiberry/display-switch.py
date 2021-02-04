@@ -1,5 +1,7 @@
 import time
 from RPi import GPIO
+#TODO: should we import this or embed it?
+from gpiozero import MCP3008
 
 # This works with a switch+potentiometer (on/off + volume)
 
@@ -9,6 +11,11 @@ GPIO.setmode(GPIO.BCM)
 prev_input = None
 
 GPIO.setup(26, GPIO.IN)
+
+pot = MCP3008(0)#wired to channel 0
+volume = 0
+newVolume = 0
+
 while True:
     #take a reading
     input = GPIO.input(26)
@@ -25,5 +32,17 @@ while True:
             print("Turned off")
     #update previous input
     prev_input = input
+
+
+    if (pot.value < 0.002):
+        newVolume = 0
+    else:
+        newVolume = round(pot.value,2)
+
+    if (volume != newVolume and abs(newVolume - volume)>0.02):
+        volume = newVolume
+        print(" volume ", volume)
+
     #slight pause to debounce
-    time.sleep(0.05)
+    time.sleep(0.1)
+
